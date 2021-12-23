@@ -6,6 +6,7 @@ import (
 	"github.com/xuri/excelize/v2"
 	"strconv"
 	"strings"
+	"time"
 )
 
 var source = pflag.StringP("source", "s", "", "Input Source File")
@@ -16,7 +17,7 @@ func main() {
 	pflag.Parse()
 
 	if *source == "" {
-		fmt.Println("请使用 [go run main.go -s (文件名) -c (学科所在列)] 的方式指定源文件")
+		fmt.Println("请使用 [go run main.go -s (文件名)] 的方式指定源文件")
 		return
 	}
 	process(*source)
@@ -74,18 +75,18 @@ func process(sourceName string) {
 	fnew.SetCellValue("Sheet1", "B1", "发表时间")
 	fnew.SetCellValue("Sheet1", "C1", "撤稿时间")
 	i := 2
-	yearNum := 1950
-	for yearNum < 2050 {
+	yearNum := 1992
+	for yearNum < time.Now().Year() + 1 {
 		tmpStr := strconv.Itoa(yearNum)
 		numPub, ok1 := pubMap[tmpStr]
 		numReturn, ok2 := returnMap[tmpStr]
-		if ok1 || ok2 {
+		// if ok1 || ok2 {
 			fmt.Println(ok1, ok2, numPub, numReturn)
 			fnew.SetCellValue("Sheet1", fmt.Sprintf("A%d", i), yearNum)
 			fnew.SetCellValue("Sheet1", fmt.Sprintf("B%d", i), numPub)
 			fnew.SetCellValue("Sheet1", fmt.Sprintf("C%d", i), numReturn)
 			i++
-		}
+		// }
 		yearNum++
 	}
 

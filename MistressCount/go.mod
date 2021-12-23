@@ -1,4 +1,4 @@
-module MistressTimeCount
+module MistressCount
 
 go 1.15
 
