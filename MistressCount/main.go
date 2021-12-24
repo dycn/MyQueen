@@ -5,6 +5,8 @@ import (
 	"github.com/xuri/excelize/v2"
 	"io/ioutil"
 	"os"
+	"sort"
+	"strconv"
 	"strings"
 )
 
@@ -142,14 +144,49 @@ func process(sourceName string) {
 				artcleMap[colCell]++
 			}
 			if cellInt == 13 {
+				originCol := colCell
+				colCell = strings.Replace(colCell, " Hong Kong", "",9)
+				colCell = strings.Replace(colCell, " Taiwan", "",9)
+				colCell = strings.Replace(colCell, " Unknown", "",9)
 				tmp := strings.Split(colCell, " ")
 				country := ""
 				yesno := ""
 				if len(tmp) == 1 {
 					country = colCell
+				}else if len(tmp) == 2{
+					country = tmp[0]
+
+					if tmp[1] == "Yes" || tmp[1] == "No" {
+						yesno = tmp[1]
+					}else{
+						colCell = strings.Replace(colCell, "China", "", 9)
+						tmp = strings.Split(colCell, " ")
+						country = strings.Join(tmp, ";")
+					}
 				}else{
+					colCell = strings.Replace(colCell, "China", "", 9)
+					tmp = strings.Split(colCell, " ")
 					yesno = tmp[len(tmp)-1]
-					country = strings.Join(tmp[:len(tmp)-1], " ")
+					if strings.ToUpper(yesno) != "YES" && strings.ToUpper(yesno) != "NO"{
+						country = strings.Join(tmp, ";")
+						country = strings.Replace(country, "United;States", "United States", 9)
+						country = strings.Replace(country, "Bosnia;&;Herzegovina", "Bosnia & Herzegovina", 9)
+						country = strings.Replace(country, "United;Kingdom", "United Kingdom", 9)
+						country = strings.Replace(country, ";;", ";", 9)
+						country = strings.Trim(country, ";")
+						yesno = ""
+					}else{
+						country = strings.Join(tmp[:len(tmp)-1], ";")
+						country = strings.Replace(country, "United;States", "United States", 9)
+						country = strings.Replace(country, "Bosnia;&;Herzegovina", "Bosnia & Herzegovina", 9)
+						country = strings.Replace(country, "United;Kingdom", "United Kingdom", 9)
+						country = strings.Replace(country, ";;", ";", 9)
+						country = strings.Trim(country, ";")
+					}
+				}
+				if country == "" {
+					fmt.Println(originCol)
+					os.Exit(1)
 				}
 
 				countryMap[country]++
@@ -160,18 +197,22 @@ func process(sourceName string) {
 		rowInt++
 	}
 
+	countrySort := sortMap(countryMap)
+	artcleSort := sortMap(artcleMap)
+	//os.Exit(1)
 
-	for country, count := range countryMap {
+
+	for _, country := range countrySort {
 		retFile.SetCellValue("国家", fmt.Sprintf("A%d", retCountryRow), subject)
-		retFile.SetCellValue("国家", fmt.Sprintf("B%d", retCountryRow), country)
-		retFile.SetCellValue("国家", fmt.Sprintf("C%d", retCountryRow), count)
+		retFile.SetCellValue("国家", fmt.Sprintf("B%v", retCountryRow), country[0])
+		retFile.SetCellValue("国家", fmt.Sprintf("C%v", retCountryRow), country[1])
 		retCountryRow++
 	}
 
-	for artcle, count := range artcleMap {
+	for _, count := range artcleSort {
 		retFile.SetCellValue("文章类型", fmt.Sprintf("A%d", retArtcleRow), subject)
-		retFile.SetCellValue("文章类型", fmt.Sprintf("B%d", retArtcleRow), artcle)
-		retFile.SetCellValue("文章类型", fmt.Sprintf("C%d", retArtcleRow), count)
+		retFile.SetCellValue("文章类型", fmt.Sprintf("B%v", retArtcleRow), count[0])
+		retFile.SetCellValue("文章类型", fmt.Sprintf("C%v", retArtcleRow), count[1])
 		retArtcleRow++
 	}
 
@@ -196,4 +237,21 @@ func process(sourceName string) {
 	if err3 != nil{
 		fmt.Println(err3)
 	}
+}
+
+func sortMap(mapTmp map[string]int64) [][2]string{
+	//fmt.Println(len(mapTmp))
+	//fmt.Println(mapTmp)
+	ret := make([][2]string, 0,len(mapTmp))
+	for name, num := range mapTmp {
+		ret = append(ret, [2]string{name, strconv.Itoa(int(num))})
+	}
+	sort.Slice(ret, func(i, j int) bool {
+		num1,_ := strconv.Atoi(ret[i][1])
+		num2,_ := strconv.Atoi(ret[j][1])
+		return num1 > num2
+	})
+	//fmt.Println(len(ret))
+	//fmt.Println(ret)
+	return ret
 }
